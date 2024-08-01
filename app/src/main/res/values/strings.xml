@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">HenryMedsCodingChallenge</string>
+
+    <string name="generic_error_message">Something went wrong. Please try again later.</string>
+</resources>
