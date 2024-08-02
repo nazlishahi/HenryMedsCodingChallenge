@@ -32,9 +32,11 @@ class MainActivityViewModel
         JsonUtils.getClientId(application)
     }
 
-    init {
-        loadSchedules()
-        loadReservations()
+    fun loadData() {
+        viewModelScope.launch {
+            loadSchedules()
+            loadReservations()
+        }
     }
 
     private fun loadSchedules() {
@@ -44,6 +46,13 @@ class MainActivityViewModel
                 scheduleList
                     .sortedBy { it.date }
                     .filter { it.date.time >= System.currentTimeMillis() }
+        }
+    }
+
+    private fun loadReservations() {
+        viewModelScope.launch {
+            val reservations = JsonUtils.readReservationsJsonFromFile(application)
+            _reservations.value = reservations
         }
     }
 
@@ -72,7 +81,6 @@ class MainActivityViewModel
     }
 
     fun groupTimeSlotsByDate(): Map<String, List<TimeSlot>> {
-        loadReservations()
         val schedules = _schedules.value
         return schedules.flatMap { createTimeSlots(it) }.groupBy { it.date }
     }
@@ -109,33 +117,40 @@ class MainActivityViewModel
                 slots.add(TimeSlot(dateFormatter.format(startCalendar.time), timeFormatter.format(startCalendar.time), schedule.providerId))
                 startCalendar.add(Calendar.MINUTE, 15)
             } else {
-                reservations.filterNot { it.date == startDateValue && it.time == slotStartTime && it.providerId == schedule.providerId && it.confirmed }.forEach {
-                    slots.add(TimeSlot(dateFormatter.format(startCalendar.time), timeFormatter.format(startCalendar.time), schedule.providerId))
-                    startCalendar.add(Calendar.MINUTE, 15)
+                val index = reservations.indexOfFirst {
+                    it.date == startDateValue && it.time == slotStartTime && it.providerId == schedule.providerId
                 }
+                val timeSlotDate = dateFormatter.format(startCalendar.time)
+                val timeSlotStartTime = timeFormatter.format(startCalendar.time)
+                val providerId = schedule.providerId
+                if (index >= 0) {
+                    val reservation = reservations[index]
+                    if (timeSlotDate != reservation.date || timeSlotStartTime != reservation.time || providerId != reservation.providerId) {
+                        slots.add(TimeSlot(timeSlotDate, timeSlotStartTime, providerId))
+                    }
+                } else {
+                    slots.add(TimeSlot(timeSlotDate, timeSlotStartTime, providerId))
+                }
+                startCalendar.add(Calendar.MINUTE, 15)
             }
         }
 
         return slots
     }
 
-    fun loadReservations() {
-        viewModelScope.launch {
-            val reservations = JsonUtils.readReservationsJsonFromFile(application)
-            _reservations.value = reservations
-        }
-    }
-
     fun reserveSlot(date: String, time: String, providerId: String) {
-        val newReservation = Reservation(
-            date = date,
-            time = time,
-            clientId = clientId,
-            providerId = providerId,
-            confirmed = false,
-            creationTimestamp = System.currentTimeMillis()
-        )
-        _reservations.value = _reservations.value.plus(newReservation)
+        viewModelScope.launch {
+            val newReservation = Reservation(
+                date = date,
+                time = time,
+                clientId = clientId,
+                providerId = providerId,
+                confirmed = false,
+                creationTimestamp = System.currentTimeMillis()
+            )
+            _reservations.value = _reservations.value.plus(newReservation)
+            JsonUtils.writeReservationJsonToFile(application, _reservations.value)
+        }
     }
 
     fun confirmReservation(date: String, time: String, providerId: String) {

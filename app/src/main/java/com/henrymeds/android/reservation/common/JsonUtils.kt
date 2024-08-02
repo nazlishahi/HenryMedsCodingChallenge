@@ -1,14 +1,15 @@
 package com.henrymeds.android.reservation.common
 
 import android.app.Application
-
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.henrymeds.android.reservation.data.Client
 import com.henrymeds.android.reservation.data.Reservation
 import com.henrymeds.android.reservation.data.Schedule
+import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
+
 
 object JsonUtils {
 
@@ -27,9 +28,16 @@ object JsonUtils {
 
     fun writeScheduleJsonToFile(application: Application, schedules: List<Schedule>) {
         val file = File(application.filesDir, SCHEDULES_FILE_NAME)
+        val fileWriter = FileWriter(file)
+        val bufferedWriter = BufferedWriter(fileWriter)
         val json = Gson().toJson(schedules)
-        FileWriter(file).use {
-            it.write(json)
+        try {
+            bufferedWriter.write(json)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            bufferedWriter.close()
+            fileWriter.close()
         }
     }
 
@@ -45,9 +53,16 @@ object JsonUtils {
 
     fun writeReservationJsonToFile(application: Application, reservations: List<Reservation>) {
         val file = File(application.filesDir, RESERVATIONS_FILE_NAME)
+        val fileWriter = FileWriter(file)
+        val bufferedWriter = BufferedWriter(fileWriter)
         val json = Gson().toJson(reservations)
-        FileWriter(file).use {
-            it.write(json)
+        try {
+            bufferedWriter.write(json)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            bufferedWriter.close()
+            fileWriter.close()
         }
     }
 

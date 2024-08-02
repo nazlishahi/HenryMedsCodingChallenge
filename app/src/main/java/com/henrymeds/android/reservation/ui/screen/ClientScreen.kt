@@ -14,6 +14,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.henrymeds.android.reservation.data.TimeSlot
 import com.henrymeds.android.reservation.viewmodel.MainActivityViewModel
-import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun ClientScreen(
@@ -37,6 +37,12 @@ fun ClientScreen(
     var selectedTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
     var showReserveSlotButton by remember { mutableStateOf(false) }
     var showConfirmButton by remember { mutableStateOf(false) }
+    var reserveSlot by remember { mutableStateOf(false) }
+    var confirmSlot by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadData()
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         val groupedTimeSlots = viewModel.groupTimeSlotsByDate()
@@ -84,13 +90,8 @@ fun ClientScreen(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        viewModel.reserveSlot(
-                            date = it.date,
-                            time = it.time,
-                            providerId = it.providerId
-                        )
-                        Toast.makeText(context, "Reserved slot at ${it.date} ${it.time}", Toast.LENGTH_LONG).show()
-                        showReserveSlotButton = false
+                        //showReserveSlotButton = false
+                        reserveSlot = true
                         showConfirmButton = true
                     }
                 ) {
@@ -102,6 +103,16 @@ fun ClientScreen(
 
     if (showConfirmButton) {
         selectedTimeSlot?.let {
+
+            LaunchedEffect(Unit) {
+                viewModel.reserveSlot(
+                    date = it.date,
+                    time = it.time,
+                    providerId = it.providerId
+                )
+                Toast.makeText(context, "Reserved slot at ${it.date} ${it.time}", Toast.LENGTH_LONG).show()
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,14 +122,22 @@ fun ClientScreen(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        viewModel.confirmReservation(it.date, it.time, it.providerId)
-                        Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_LONG).show()
-                        navHostController.navigate("home")
+                        confirmSlot = true
                     }
                 ) {
                     Text("Confirm reservation at ${it.date} ${it.time}")
                 }
             }
+        }
+    }
+
+    if (confirmSlot) {
+        selectedTimeSlot?.let {
+            LaunchedEffect(Unit) {
+                viewModel.confirmReservation(it.date, it.time, it.providerId)
+            }
+            Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_LONG).show()
+            navHostController.navigate("home")
         }
     }
 }
