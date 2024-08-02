@@ -10,7 +10,6 @@ import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 
-
 object JsonUtils {
 
     private const val SCHEDULES_FILE_NAME = "schedules.json"

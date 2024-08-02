@@ -68,7 +68,7 @@ fun ClientScreen(
                     }
                 ) {
                     Text(
-                        text = timeSlot.time,
+                        text = "${timeSlot.time}\nProvider id:${timeSlot.providerId}",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -90,7 +90,6 @@ fun ClientScreen(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
-                        //showReserveSlotButton = false
                         reserveSlot = true
                         showConfirmButton = true
                     }
@@ -110,7 +109,7 @@ fun ClientScreen(
                     time = it.time,
                     providerId = it.providerId
                 )
-                Toast.makeText(context, "Reserved slot at ${it.date} ${it.time}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Reserved slot at ${it.date} ${it.time}", Toast.LENGTH_SHORT).show()
             }
 
             Box(
@@ -136,8 +135,9 @@ fun ClientScreen(
             LaunchedEffect(Unit) {
                 viewModel.confirmReservation(it.date, it.time, it.providerId)
             }
-            Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_SHORT).show()
             navHostController.navigate("home")
+            confirmSlot = false
         }
     }
 }

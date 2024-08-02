@@ -45,7 +45,6 @@ class MainActivityViewModel
             _schedules.value =
                 scheduleList
                     .sortedBy { it.date }
-                    .filter { it.date.time >= System.currentTimeMillis() }
         }
     }
 
@@ -82,7 +81,12 @@ class MainActivityViewModel
 
     fun groupTimeSlotsByDate(): Map<String, List<TimeSlot>> {
         val schedules = _schedules.value
-        return schedules.flatMap { createTimeSlots(it) }.groupBy { it.date }
+        return schedules
+            .flatMap { createTimeSlots(it) }
+            .groupBy { it.date}
+            .mapValues { entry ->
+                entry.value.sortedWith(compareBy({ it.time }, { it.providerId }))
+            }
     }
 
     private fun createTimeSlots(schedule: Schedule): List<TimeSlot> {
@@ -111,26 +115,32 @@ class MainActivityViewModel
 
         val reservations = _reservations.value
 
+        val now = Date()
+
         while (startCalendar.time.before(endCalendar.time)) {
-            val slotStartTime = timeFormatter.format(startCalendar.time)
-            if (reservations.isEmpty()) {
-                slots.add(TimeSlot(dateFormatter.format(startCalendar.time), timeFormatter.format(startCalendar.time), schedule.providerId))
-                startCalendar.add(Calendar.MINUTE, 15)
-            } else {
-                val index = reservations.indexOfFirst {
-                    it.date == startDateValue && it.time == slotStartTime && it.providerId == schedule.providerId
-                }
-                val timeSlotDate = dateFormatter.format(startCalendar.time)
-                val timeSlotStartTime = timeFormatter.format(startCalendar.time)
-                val providerId = schedule.providerId
-                if (index >= 0) {
-                    val reservation = reservations[index]
-                    if (timeSlotDate != reservation.date || timeSlotStartTime != reservation.time || providerId != reservation.providerId) {
+            if (startCalendar.time.after(now)) {
+                val slotStartTime = timeFormatter.format(startCalendar.time)
+                if (reservations.isEmpty()) {
+                    slots.add(TimeSlot(dateFormatter.format(startCalendar.time), timeFormatter.format(startCalendar.time), schedule.providerId))
+                    startCalendar.add(Calendar.MINUTE, 15)
+                } else {
+                    val index = reservations.indexOfFirst {
+                        it.date == startDateValue && it.time == slotStartTime && it.providerId == schedule.providerId
+                    }
+                    val timeSlotDate = dateFormatter.format(startCalendar.time)
+                    val timeSlotStartTime = timeFormatter.format(startCalendar.time)
+                    val providerId = schedule.providerId
+                    if (index >= 0) {
+                        val reservation = reservations[index]
+                        if (timeSlotDate != reservation.date || timeSlotStartTime != reservation.time || providerId != reservation.providerId) {
+                            slots.add(TimeSlot(timeSlotDate, timeSlotStartTime, providerId))
+                        }
+                    } else {
                         slots.add(TimeSlot(timeSlotDate, timeSlotStartTime, providerId))
                     }
-                } else {
-                    slots.add(TimeSlot(timeSlotDate, timeSlotStartTime, providerId))
+                    startCalendar.add(Calendar.MINUTE, 15)
                 }
+            } else {
                 startCalendar.add(Calendar.MINUTE, 15)
             }
         }
