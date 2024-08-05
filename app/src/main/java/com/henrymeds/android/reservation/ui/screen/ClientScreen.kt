@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,7 @@ fun ClientScreen(
 ) {
 
     val context = LocalContext.current
+    val reservationState by viewModel.reservationState.collectAsState()
     var selectedTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
     var showReserveSlotButton by remember { mutableStateOf(false) }
     var showConfirmButton by remember { mutableStateOf(false) }
@@ -135,9 +137,21 @@ fun ClientScreen(
             LaunchedEffect(Unit) {
                 viewModel.confirmReservation(it.date, it.time, it.providerId)
             }
-            Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_SHORT).show()
-            navHostController.navigate("home")
-            confirmSlot = false
+
+            reservationState?.let { state ->
+                when (state) {
+                    is MainActivityViewModel.ReservationState.Success -> {
+                        Toast.makeText(context, "Confirmed reservation", Toast.LENGTH_SHORT).show()
+
+                    }
+                    is MainActivityViewModel.ReservationState.Expired -> {
+                        Toast.makeText(context, "Reservation expired. Please resume booking.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                navHostController.navigate("home")
+                confirmSlot = false
+                viewModel.clearReservationState()
+            }
         }
     }
 }

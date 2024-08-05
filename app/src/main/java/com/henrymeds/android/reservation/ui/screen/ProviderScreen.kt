@@ -17,10 +17,10 @@ import com.henrymeds.android.reservation.viewmodel.MainActivityViewModel
 import java.util.*
 
 @Composable
-fun ProviderScreen(mainActivityViewModel: MainActivityViewModel, modifier: Modifier = Modifier) {
+fun ProviderScreen(viewModel: MainActivityViewModel, modifier: Modifier = Modifier) {
 
     val context = LocalContext.current
-    val uiMessageState by mainActivityViewModel.uiMessageState.collectAsState()
+    val uiMessageState by viewModel.uiMessageState.collectAsState()
 
     var providerId by remember { mutableStateOf(TextFieldValue("")) }
     var dateText by remember { mutableStateOf(TextFieldValue("")) }
@@ -96,7 +96,7 @@ fun ProviderScreen(mainActivityViewModel: MainActivityViewModel, modifier: Modif
         Button(
             onClick = {
                 // Save the provider's schedule
-                mainActivityViewModel.setProviderSchedule(
+                viewModel.setProviderSchedule(
                     providerId = providerId.text,
                     date = selectedDate,
                     startTime = startTimeText.text,
@@ -135,6 +135,6 @@ fun ProviderScreen(mainActivityViewModel: MainActivityViewModel, modifier: Modif
 
     uiMessageState?.let {
         Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-        mainActivityViewModel.clearUiMessageState()
+        viewModel.clearUiMessageState()
     }
 }

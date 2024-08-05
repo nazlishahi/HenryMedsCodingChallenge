@@ -28,6 +28,9 @@ class MainActivityViewModel
     private val _uiMessageState = MutableStateFlow<String?>(null)
     val uiMessageState: StateFlow<String?> get() = _uiMessageState
 
+    private val _reservationState = MutableStateFlow<ReservationState?>(null)
+    val reservationState: StateFlow<ReservationState?> get() = _reservationState
+
     private val clientId by lazy {
         JsonUtils.getClientId(application)
     }
@@ -124,7 +127,7 @@ class MainActivityViewModel
                     slots.add(TimeSlot(dateFormatter.format(startCalendar.time), timeFormatter.format(startCalendar.time), schedule.providerId))
                     startCalendar.add(Calendar.MINUTE, 15)
                 } else {
-                    val index = reservations.indexOfFirst {
+                    val index = reservations.filter { it.confirmed }.indexOfFirst {
                         it.date == startDateValue && it.time == slotStartTime && it.providerId == schedule.providerId
                     }
                     val timeSlotDate = dateFormatter.format(startCalendar.time)
@@ -171,17 +174,40 @@ class MainActivityViewModel
                 it.date == date && it.time == time && it.clientId == clientId && it.providerId == providerId
             }
 
-            if (index != -1) {
+            if (index >= 0) {
                 val reservation = updatedReservations[index]
-                val updatedReservation = reservation.copy(confirmed = true)
-                updatedReservations[index] = updatedReservation
+                val now = Date()
+                val creationTimestamp = reservation.creationTimestamp
+                val diff = now.time - creationTimestamp
+                val elapsedMinutes = diff / (60 * 1000)
+                if (elapsedMinutes >= RESERVATION_HOLD_PERIOD_IN_MINUTES) {
+                    updatedReservations.removeAt(index)
+                    _reservations.value = updatedReservations
+                    _reservationState.value = ReservationState.Expired
+                } else {
+                    val updatedReservation = reservation.copy(confirmed = true)
+                    updatedReservations[index] = updatedReservation
+                    _reservationState.value = ReservationState.Success
+                }
+                JsonUtils.writeReservationJsonToFile(application, updatedReservations)
             }
-
-            JsonUtils.writeReservationJsonToFile(application, updatedReservations)
         }
+    }
+
+    fun clearReservationState() {
+        _reservationState.value = null
     }
 
     fun clearUiMessageState() {
         _uiMessageState.value = null
+    }
+
+    companion object {
+        private const val RESERVATION_HOLD_PERIOD_IN_MINUTES = 30
+    }
+
+    sealed class ReservationState {
+        data object Success: ReservationState()
+        data object Expired: ReservationState()
     }
 }
